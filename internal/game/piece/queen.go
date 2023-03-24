@@ -17,6 +17,10 @@ func NewQueen(team bool) (IPiece, error) {
 	}, nil
 }
 
+func XOR(x, y bool) bool {
+	return (x || y) && (!x || !y)
+}
+
 func (queen Queen) ValidateMove(current, candide position.Position) bool {
-	return true
+	return XOR(Rook(queen).ValidateMove(current, candide), Bishop(queen).ValidateMove(current, candide))
 }

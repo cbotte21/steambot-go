@@ -17,11 +17,15 @@ func NewBishop(team bool) (IPiece, error) {
 	}, nil
 }
 
-// ValidSlope returns true if delta_slope == 1
-func ValidSlope() {
-
-}
-
 func (bishop Bishop) ValidateMove(current, candide position.Position) bool {
-	return true
+	dY := candide.GetY() - current.GetY()
+	if dY < 0 {
+		dY = -dY
+	}
+	dX := candide.GetX() - current.GetX()
+	if dX < 0 {
+		dX = -dX
+	}
+	ans := dY / dX
+	return ans == 1
 }

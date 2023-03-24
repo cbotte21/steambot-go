@@ -1,7 +1,7 @@
 package templates
 
 const (
-	Default string = "myexampletemplate"
+	Default string = "RNBQKBNRPPPPPPPPEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEPPPPPPPPRNBKQBNR"
 )
 
 // GetTemplate matches a string pattern, returning desired template.

@@ -2,7 +2,6 @@ package piece
 
 import (
 	"github.com/cbotte21/chess-go/internal/game/position"
-	"math"
 )
 
 type King struct { //Team of piece
@@ -19,8 +18,11 @@ func NewKing(team bool) (IPiece, error) {
 }
 
 func verify(current, candide int) bool {
-	const epsilon = .001
-	return math.Abs(float64(current-candide)-1) < epsilon || current-candide == 0
+	deltaTiles := current - candide
+	if deltaTiles < 0 {
+		deltaTiles = -deltaTiles
+	}
+	return deltaTiles == 1 || deltaTiles == 0
 }
 
 func (king King) ValidateMove(current, candide position.Position) bool { //Can multiply difference by -1 or piece calculations

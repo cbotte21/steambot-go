@@ -18,5 +18,13 @@ func NewRook(team bool) (IPiece, error) {
 }
 
 func (rook Rook) ValidateMove(current, candide position.Position) bool {
-	return true
+	dY := candide.GetY() - current.GetY()
+	if dY < 0 {
+		dY = -dY
+	}
+	dX := candide.GetX() - current.GetX()
+	if dX < 0 {
+		dX = -dX
+	}
+	return dY > 0 && dX == 0 || dX > 0 && dY == 0
 }

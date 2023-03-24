@@ -2,9 +2,6 @@ package piece
 
 import "errors"
 
-/*
-Precondition: identifier should contain two characters. <TEAM_IDENTIFIER><PIECE_IDENTIFIER>
-*/
 func GetPiece(identifier string, team bool) (IPiece, error) {
 	switch identifier {
 	case "k":
