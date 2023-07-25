@@ -23,10 +23,8 @@ func NewBoard(template string) Board {
 	board := Board{}
 	for i := 0; i < width; i++ {
 		for k := 0; k < height; k++ {
-			currPiece, _ := piece2.GetPiece(string(template[i*width+height]), WHITE)
-			position := position2.Position{}
-			position.SetPosition(i, k)
-			board.SetPosition(position, currPiece)
+			currPiece, _ := piece2.GetPiece(string(template[i*width+height]), i < (width/2))
+			board.SetPosition(position2.NewPosition(i, k), currPiece)
 		}
 	}
 	return board
@@ -68,7 +66,7 @@ func (board *Board) ValidateMove(p piece2.IPiece, final position2.Position) bool
 
 // ToString returns a string representation of pieces, every piece has {team_identifier}{piece_identifier}
 func (board *Board) ToString() string {
-	var str string = ""
+	str := ""
 	for i := 0; i < width; i++ {
 		for k := 0; k < height; k++ {
 			if board[i][k].GetTeam() { //Add team

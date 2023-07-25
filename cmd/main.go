@@ -2,7 +2,6 @@ package main
 
 import (
 	"github.com/cbotte21/chess-go/internal"
-	"github.com/cbotte21/chess-go/internal/game"
 	"github.com/cbotte21/chess-go/pb"
 	"github.com/cbotte21/microservice-common/pkg/jwtParser"
 	"google.golang.org/grpc"
@@ -24,10 +23,9 @@ func main() {
 
 	// Register handlers
 	jwtSecret := jwtParser.JwtSecret("")
-	instanceManager := game.Instances{}
 
 	//Initialize hive
-	chessServer := internal.NewChess(&jwtSecret, &instanceManager)
+	chessServer := internal.NewChess(&jwtSecret)
 
 	pb.RegisterChessServiceServer(grpcServer, &chessServer)
 
