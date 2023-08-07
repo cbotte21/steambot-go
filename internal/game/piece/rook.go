@@ -1,6 +1,7 @@
 package piece
 
 import (
+	"github.com/cbotte21/chess-go/internal/game"
 	"github.com/cbotte21/chess-go/internal/game/position"
 )
 
@@ -8,23 +9,26 @@ type Rook struct { //Team of piece
 	Piece
 }
 
-func NewRook(team bool) (IPiece, error) {
+func NewRook(position position.Position) (IPiece, error) {
 	return &Rook{
 		Piece{
-			team,
-			"R",
+			position,
 		},
 	}, nil
 }
 
-func (rook Rook) ValidateMove(current, candide position.Position) bool {
-	dY := candide.GetY() - current.GetY()
+func (rook Rook) ValidateMove(final position.Position, state game.Game) error {
+	dY := final.GetY() - rook.initial.GetY()
 	if dY < 0 {
 		dY = -dY
 	}
-	dX := candide.GetX() - current.GetX()
+	dX := final.GetX() - rook.initial.GetX()
 	if dX < 0 {
 		dX = -dX
 	}
-	return dY > 0 && dX == 0 || dX > 0 && dY == 0
+
+	if dY > 0 && dX == 0 || dX > 0 && dY == 0 {
+		return nil
+	}
+	return InvalidMoveError()
 }

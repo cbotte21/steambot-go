@@ -1,29 +1,21 @@
 package piece
 
 import (
+	"errors"
+	"github.com/cbotte21/chess-go/internal/game"
 	"github.com/cbotte21/chess-go/internal/game/position"
 )
 
+type Type int
+
 type IPiece interface {
-	ValidateMove(current, candide position.Position) bool
-	SetTeam(team bool)
-	GetTeam() bool
-	GetIdentifier() string
+	ValidateMove(final position.Position, state game.Game) error
 }
 
 type Piece struct {
-	team       bool
-	identifier string
+	initial position.Position
 }
 
-func (piece Piece) GetTeam() bool {
-	return piece.team
-}
-
-func (piece *Piece) SetTeam(team bool) {
-	piece.team = team
-}
-
-func (piece *Piece) GetIdentifier() string {
-	return piece.identifier
+func InvalidMoveError() error {
+	return errors.New("invalid move")
 }

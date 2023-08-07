@@ -1,6 +1,7 @@
 package piece
 
 import (
+	"github.com/cbotte21/chess-go/internal/game"
 	"github.com/cbotte21/chess-go/internal/game/position"
 )
 
@@ -8,19 +9,21 @@ type Queen struct { //Team of piece
 	Piece
 }
 
-func NewQueen(team bool) (IPiece, error) {
+func NewQueen(position position.Position) (IPiece, error) {
 	return &King{
 		Piece{
-			team,
-			"Q",
+			position,
 		},
 	}, nil
 }
 
-func XOR(x, y bool) bool {
-	return (x || y) && (!x || !y)
+func XOR(x, y error) error {
+	if x != nil {
+		return x
+	}
+	return y
 }
 
-func (queen Queen) ValidateMove(current, candide position.Position) bool {
-	return XOR(Rook(queen).ValidateMove(current, candide), Bishop(queen).ValidateMove(current, candide))
+func (queen Queen) ValidateMove(final position.Position, state game.Game) error {
+	return XOR(Rook(queen).ValidateMove(queen.initial, state), Bishop(queen).ValidateMove(queen.initial, state))
 }

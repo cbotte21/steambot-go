@@ -1,31 +1,30 @@
 package piece
 
-import "errors"
+import (
+	"errors"
+	"github.com/cbotte21/chess-go/internal/game/position"
+)
 
-func GetPiece(identifier string, team bool) (IPiece, error) {
-	switch identifier {
-	case "k":
-		king, _ := NewKing(team)
+func GetPiece(position position.Position, piece Type) (IPiece, error) {
+	switch piece {
+	case 5:
+		king, _ := NewKing(position)
 		return king, nil
-	case "q":
-		queen, _ := NewQueen(team)
+	case 4:
+		queen, _ := NewQueen(position)
 		return queen, nil
-	case "r":
-		rook, _ := NewRook(team)
+	case 3:
+		rook, _ := NewRook(position)
 		return rook, nil
-	case "b":
-		bishop, _ := NewBishop(team)
+	case 2:
+		bishop, _ := NewBishop(position)
 		return bishop, nil
-	case "n":
-		knight, _ := NewKnight(team)
+	case 1:
+		knight, _ := NewKnight(position)
 		return knight, nil
-	case "p":
-		pawn, _ := NewPawn(team)
+	case 0:
+		pawn, _ := NewPawn(position)
 		return pawn, nil
 	}
-	return nil, nil
-}
-
-func GetPieceError() error {
-	return errors.New("could not allocate piece")
+	return nil, errors.New("invalid piece")
 }

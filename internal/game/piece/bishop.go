@@ -1,6 +1,7 @@
 package piece
 
 import (
+	"github.com/cbotte21/chess-go/internal/game"
 	"github.com/cbotte21/chess-go/internal/game/position"
 )
 
@@ -8,24 +9,26 @@ type Bishop struct { //Team of piece
 	Piece
 }
 
-func NewBishop(team bool) (IPiece, error) {
-	return &King{
+func NewBishop(position position.Position) (IPiece, error) {
+	return &Bishop{
 		Piece{
-			team,
-			"B",
+			position,
 		},
 	}, nil
 }
 
-func (bishop Bishop) ValidateMove(current, candide position.Position) bool {
-	dY := candide.GetY() - current.GetY()
+func (bishop Bishop) ValidateMove(final position.Position, state game.Game) error {
+	dY := final.GetY() - bishop.initial.GetY()
 	if dY < 0 {
 		dY = -dY
 	}
-	dX := candide.GetX() - current.GetX()
+	dX := final.GetX() - bishop.initial.GetX()
 	if dX < 0 {
 		dX = -dX
 	}
 	ans := dY / dX
-	return ans == 1
+	if ans != 1 {
+		return InvalidMoveError()
+	}
+	return nil
 }

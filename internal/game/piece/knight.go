@@ -1,6 +1,7 @@
 package piece
 
 import (
+	"github.com/cbotte21/chess-go/internal/game"
 	"github.com/cbotte21/chess-go/internal/game/position"
 )
 
@@ -8,23 +9,25 @@ type Knight struct { //Team of piece
 	Piece
 }
 
-func NewKnight(team bool) (IPiece, error) {
+func NewKnight(position position.Position) (IPiece, error) {
 	return &King{
 		Piece{
-			team,
-			"N",
+			position,
 		},
 	}, nil
 }
 
-func (knight Knight) ValidateMove(current, candide position.Position) bool {
-	dY := candide.GetY() - current.GetY()
+func (knight Knight) ValidateMove(final position.Position, state game.Game) error {
+	dY := final.GetY() - knight.initial.GetY()
 	if dY < 0 {
 		dY = -dY
 	}
-	dX := candide.GetX() - current.GetX()
+	dX := final.GetX() - knight.initial.GetX()
 	if dX < 0 {
 		dX = -dX
 	}
-	return dY == 2 && dX == 1 || dX == 2 && dY == 1
+	if (dY != 2 || dX != 1) && (dX != 2 || dY != 1) {
+		return InvalidMoveError()
+	}
+	return nil
 }
