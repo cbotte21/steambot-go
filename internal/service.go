@@ -74,14 +74,26 @@ func (chess *Chess) Play(ctx context.Context, stream pb.ChessService_MoveServer)
 			return nil, errors.New("internal server error")
 		}
 
-		// First time, sync game from cache, register move handler
+		// First time, get game from cache, register move handler
 		if key == "" {
-			key, isWhite, err = chess.sync(moveRequest)
+			key, isWhite, err = chess.get(moveRequest)
 			// Move handler
 			go func() {
 				sub := chess.GameCache.Subscribe(key)
-				for range sub.Channel() {
-					break
+				for range sub.Channel() { // Get game, send update to client
+					cachedGame, err := chess.GameCache.Find(schema.CachedGame{
+						White: key,
+					})
+					if err != nil {
+						return
+					}
+					err = stream.Send(&pb.MoveResponse{
+						Turn:  cachedGame.Turn && isWhite || !cachedGame.Turn && !isWhite,
+						State: game.LoadGame(&cachedGame),
+					})
+					if err != nil {
+						return
+					}
 				}
 			}()
 		}
@@ -93,7 +105,7 @@ func (chess *Chess) Play(ctx context.Context, stream pb.ChessService_MoveServer)
 	}
 }
 
-func (chess *Chess) sync(moveRequest *pb.MoveRequest) (string, bool, error) {
+func (chess *Chess) get(moveRequest *pb.MoveRequest) (string, bool, error) {
 	jwtClaim, err := chess.JwtRedeemer.Redeem(moveRequest.Jwt.GetJwt())
 	if err != nil {
 		return "", false, err // Player is not logged in
@@ -135,7 +147,7 @@ func (chess *Chess) move(moveRequest *pb.MoveRequest, isWhite bool, key string, 
 			if err == nil {
 				return // Successful move
 			}
-			// Revert changes to keep server in sync with clients
+			// Revert changes to keep server in get with clients
 			_ = chess.GameCache.Create(cachedGame)
 		}
 	}
