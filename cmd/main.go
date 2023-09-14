@@ -5,7 +5,7 @@ import (
 	"github.com/cbotte21/chess-go/pb"
 	"github.com/cbotte21/chess-go/schema"
 	"github.com/cbotte21/microservice-common/pkg/datastore"
-	"github.com/cbotte21/microservice-common/pkg/enviroment"
+	"github.com/cbotte21/microservice-common/pkg/environment"
 	"github.com/cbotte21/microservice-common/pkg/jwtParser"
 	"google.golang.org/grpc"
 	"log"
@@ -14,11 +14,11 @@ import (
 
 func main() {
 	// Verify environment variables exist
-	enviroment.VerifyEnvVariable("port")
-	enviroment.VerifyEnvVariable("queue_addr")
-	enviroment.VerifyEnvVariable("jwt_secret")
+	environment.VerifyEnvVariable("port")
+	environment.VerifyEnvVariable("queue_addr")
+	environment.VerifyEnvVariable("jwt_secret")
 
-	port := enviroment.GetEnvVariable("port")
+	port := environment.GetEnvVariable("port")
 
 	// Setup tcp listener
 	lis, err := net.Listen("tcp", ":"+port)
@@ -29,7 +29,7 @@ func main() {
 
 	// Register handlers to attach
 
-	jwtRedeemer := jwtParser.JwtSecret(enviroment.GetEnvVariable("jwt_secret"))
+	jwtRedeemer := jwtParser.JwtSecret(environment.GetEnvVariable("jwt_secret"))
 
 	//gameArchive := datastore.RedisClient[schema.RecordGame]{}
 	gameCache := datastore.RedisClient[schema.CachedGame]{}
@@ -48,7 +48,7 @@ func main() {
 
 func getQueueConn() *grpc.ClientConn {
 	var conn *grpc.ClientConn
-	conn, err := grpc.Dial(enviroment.GetEnvVariable("queue_addr"), grpc.WithInsecure())
+	conn, err := grpc.Dial(environment.GetEnvVariable("queue_addr"), grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf(err.Error())
 	}

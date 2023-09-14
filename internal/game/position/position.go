@@ -25,6 +25,6 @@ func (position *Position) GetY() int {
 	return position.Y
 }
 
-func (position *Position) Offset() int64 {
+func (position *Position) Offset() uint64 {
 	return 2 << (position.X*8 + position.Y)
 }

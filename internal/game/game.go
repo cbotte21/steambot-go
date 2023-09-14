@@ -11,7 +11,9 @@ import (
 	"github.com/cbotte21/chess-go/schema"
 )
 
-type Game []int64
+type Game []uint64
+
+var maxVal uint64 = ^uint64(0)
 
 const (
 	PAWN      = 0
@@ -33,7 +35,7 @@ func NewGame(template string) Game {
 	// Piece bitboards
 	for i, identifier := range template {
 		pieceType := board.getTypeFromIdentifier(identifier)
-		var offset int64 = 2 << i
+		var offset uint64 = 2 << i
 
 		if pieceType == -1 {
 			continue
@@ -43,7 +45,7 @@ func NewGame(template string) Game {
 	}
 
 	for i := 0; i < 64; i++ {
-		var offset int64 = 2 << i
+		var offset uint64 = 2 << i
 
 		if i < 16 { // Populate team bitboard
 			board[PLAYERONE] = board[PLAYERONE] | offset
@@ -99,7 +101,7 @@ func (game *Game) Move(initial, final position.Position, isWhite bool) error {
 		return err
 	}
 
-	err = p.ValidateMove(final, *game)
+	err = p.ValidateMove(final)
 	if err != nil {
 		return err
 	}
@@ -115,13 +117,11 @@ func (game *Game) moveFlag(piece piece.Type, initial, position position.Position
 	// Set final
 	(*game)[piece] = (*game)[piece] ^ offset
 	// Delete initial
-	var maxVal int64 = (2 << 65) - 1
 	flag := maxVal ^ offset
 	(*game)[piece] = (*game)[piece] ^ flag
 }
 
 func (game *Game) clearFlagUniverse(position position.Position) {
-	var maxVal int64 = (2 << 65) - 1
 	flag := maxVal ^ (2 << (position.X*8 + position.Y))
 
 	for _, state := range *game {
@@ -166,7 +166,7 @@ func (game *Game) getTypeFromIdentifier(identifier int32) piece.Type {
 
 func (game *Game) isAlly(position position.Position, isWhite bool) bool {
 	// Get players bitboard
-	var bitboard int64 = (*game)[PLAYERONE]
+	var bitboard uint64 = (*game)[PLAYERONE]
 	if !isWhite {
 		bitboard = game.playerTwoBitBoard()
 	}
@@ -182,10 +182,10 @@ func (game *Game) isAlly(position position.Position, isWhite bool) bool {
 	return false
 }
 
-func (game *Game) playerTwoBitBoard() int64 {
-	var bitboard int64 = 0
+func (game *Game) playerTwoBitBoard() uint64 {
+	var bitboard uint64 = 0
 	for i := 0; i < 64; i++ {
-		offset := 2 << i
+		offset := uint64(2 << i)
 		if (offset & (*game)[PLAYERONE]) == 0 {
 			for k := 0; k < KING; k++ {
 				if (offset & (*game)[k]) != 0 {
