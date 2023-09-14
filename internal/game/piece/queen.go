@@ -1,7 +1,6 @@
 package piece
 
 import (
-	"github.com/cbotte21/chess-go/internal/game"
 	"github.com/cbotte21/chess-go/internal/game/position"
 )
 
@@ -24,6 +23,6 @@ func XOR(x, y error) error {
 	return y
 }
 
-func (queen Queen) ValidateMove(final position.Position, state game.Game) error {
-	return XOR(Rook(queen).ValidateMove(queen.initial, state), Bishop(queen).ValidateMove(queen.initial, state))
+func (queen Queen) ValidateMove(final position.Position) error {
+	return XOR(Rook(queen).ValidateMove(queen.initial), Bishop(queen).ValidateMove(queen.initial))
 }

@@ -1,7 +1,6 @@
 package piece
 
 import (
-	"github.com/cbotte21/chess-go/internal/game"
 	"github.com/cbotte21/chess-go/internal/game/position"
 )
 
@@ -28,7 +27,7 @@ func verify(current, candide int) error {
 	return nil
 }
 
-func (king King) ValidateMove(final position.Position, state game.Game) error { //Can multiply difference by -1 or piece calculations
+func (king King) ValidateMove(final position.Position) error { //Can multiply difference by -1 or piece calculations
 	err := verify(king.initial.X, final.X)
 	if err != nil {
 		return err

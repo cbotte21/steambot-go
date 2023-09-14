@@ -1,7 +1,6 @@
 package piece
 
 import (
-	"github.com/cbotte21/chess-go/internal/game"
 	"github.com/cbotte21/chess-go/internal/game/position"
 )
 
@@ -17,6 +16,6 @@ func NewPawn(position position.Position) (IPiece, error) {
 	}, nil
 }
 
-func (pawn Pawn) ValidateMove(final position.Position, state game.Game) error {
+func (pawn Pawn) ValidateMove(final position.Position) error {
 	return nil
 }

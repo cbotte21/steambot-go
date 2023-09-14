@@ -1,7 +1,6 @@
 package piece
 
 import (
-	"github.com/cbotte21/chess-go/internal/game"
 	"github.com/cbotte21/chess-go/internal/game/position"
 )
 
@@ -17,7 +16,7 @@ func NewKnight(position position.Position) (IPiece, error) {
 	}, nil
 }
 
-func (knight Knight) ValidateMove(final position.Position, state game.Game) error {
+func (knight Knight) ValidateMove(final position.Position) error {
 	dY := final.GetY() - knight.initial.GetY()
 	if dY < 0 {
 		dY = -dY
