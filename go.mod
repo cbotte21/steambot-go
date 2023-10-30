@@ -1,18 +1,21 @@
-module github.com/cbotte21/chess-go
+module github.com/cbotte21/steambot-internal-go
 
 go 1.21.1
 
 require (
 	github.com/cbotte21/microservice-common v0.0.0-20230914213407-d0554fe5ce92
+	github.com/doctype/steam v0.0.0-20180530094431-c2f2151389ed
+	github.com/google/uuid v1.3.0
 	google.golang.org/grpc v1.58.1
 	google.golang.org/protobuf v1.31.0
 )
 
 require (
+	github.com/PuerkitoBio/goquery v1.8.1 // indirect
+	github.com/andybalholm/cascadia v1.3.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/go-redis/redismock/v9 v9.0.3 // indirect
-	github.com/golang-jwt/jwt/v4 v4.5.0 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect

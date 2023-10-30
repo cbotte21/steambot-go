@@ -2,159 +2,80 @@ package internal
 
 import (
 	"context"
-	"errors"
-	"github.com/cbotte21/chess-go/internal/game"
-	"github.com/cbotte21/chess-go/internal/game/position"
-	"github.com/cbotte21/chess-go/internal/game/templates"
-	"github.com/cbotte21/chess-go/pb"
-	"github.com/cbotte21/chess-go/schema"
+	"fmt"
 	"github.com/cbotte21/microservice-common/pkg/datastore"
-	"github.com/cbotte21/microservice-common/pkg/jwtParser"
-	"io"
+	"github.com/cbotte21/steambot-internal-go/pb"
+	"github.com/cbotte21/steambot-internal-go/schema"
+	"github.com/doctype/steam"
+	"github.com/google/uuid"
+	"log"
+	"time"
 )
 
-type Chess struct {
-	JwtRedeemer    *jwtParser.JwtSecret
-	GameCache      *datastore.RedisClient[schema.CachedGame]
-	SvcRecordCache *datastore.RedisClient[schema.SVCRecord]
-	pb.UnimplementedChessServiceServer
+const HandleOffersIntervalSeconds = 15
+
+type SteamBot struct {
+	PendingOffers *datastore.MongoClient[schema.PendingOffer]
+	SteamClient   *steam.Session
+	pb.UnimplementedSteamBotServiceServer
 }
 
-func NewChess(jwtRedeemer *jwtParser.JwtSecret,
-	cachedGame *datastore.RedisClient[schema.CachedGame],
-	svcRecordCache *datastore.RedisClient[schema.SVCRecord]) Chess {
-	return Chess{JwtRedeemer: jwtRedeemer, GameCache: cachedGame, SvcRecordCache: svcRecordCache}
+func NewSteamBot(pendingOffers *datastore.MongoClient[schema.PendingOffer], steamClient *steam.Session) SteamBot {
+	// Create thread for handling trades
+	go HandleIncomingTrades(pendingOffers, steamClient)
+	return SteamBot{PendingOffers: pendingOffers, SteamClient: steamClient}
 }
 
-// Create is an internal function, should only be called by queue. Once per game.
-func (chess *Chess) Create(ctx context.Context, createRequest *pb.CreateRequest) (*pb.CreateResponse, error) {
-	gameInstance := game.NewGame(templates.Default)
+func (steambot *SteamBot) Create(context context.Context, createRequest *pb.CreateRequest) (*pb.CreateResponse, error) {
+	confirmationCode := uuid.NewString()
 
-	//Initial game data
-	cachedGame := schema.CachedGame{
-		White:  createRequest.White.GetXId(),
-		Black:  createRequest.Black.GetXId(),
-		Ranked: createRequest.GetRanked(),
-		Turn:   false, // ExportUpdate will set to true!
+	offer := steam.TradeOffer{ // TODO: Implement items
+		RecvItems: nil,
+		SendItems: nil,
+		Message:   "Confirmation Code: " + confirmationCode,
 	}
-	gameInstance.ExportUpdate(cachedGame)
 
-	// Create game
-	err := chess.GameCache.Create(cachedGame)
+	err := steambot.SteamClient.SendTradeOffer(&offer, steam.SteamID(createRequest.Recipient), "")
 	if err != nil {
 		return &pb.CreateResponse{Status: false}, err
 	}
 
-	// Create service records
-	err = chess.SvcRecordCache.Create(schema.SVCRecord{Player: createRequest.White.GetXId()})
-	if err != nil {
-		_ = chess.GameCache.Delete(schema.CachedGame{White: createRequest.White.GetXId()})
-		return &pb.CreateResponse{Status: false}, err
-	}
-	err = chess.SvcRecordCache.Create(schema.SVCRecord{Player: createRequest.Black.GetXId()})
-	if err != nil {
-		_ = chess.SvcRecordCache.Delete(schema.SVCRecord{Player: createRequest.White.GetXId()})
-		_ = chess.GameCache.Delete(schema.CachedGame{White: createRequest.White.GetXId()})
-		return &pb.CreateResponse{Status: false}, err
-	}
-
-	return &pb.CreateResponse{Status: true}, nil
-}
-
-func (chess *Chess) Play(ctx context.Context, stream pb.ChessService_MoveServer) (*pb.MoveResponse, error) {
-	key := ""        // Game id
-	var isWhite bool // Player is on team white
-
-	for { // Handle move requests
-		moveRequest, err := stream.Recv()
-		if err == io.EOF {
-			return nil, errors.New("stream terminated")
-		}
-		if err != nil {
-			return nil, errors.New("internal server error")
-		}
-
-		// First time, get game from cache, register move handler
-		if key == "" {
-			key, isWhite, err = chess.get(moveRequest)
-			// Move handler
-			go func() {
-				sub := chess.GameCache.Subscribe(key)
-				for range sub.Channel() { // Get game, send update to client
-					cachedGame, err := chess.GameCache.Find(schema.CachedGame{
-						White: key,
-					})
-					if err != nil {
-						return
-					}
-					err = stream.Send(&pb.MoveResponse{
-						Turn:  cachedGame.Turn && isWhite || !cachedGame.Turn && !isWhite,
-						State: game.LoadGame(&cachedGame),
-					})
-					if err != nil {
-						return
-					}
-				}
-			}()
-		}
-
-		// Attempt move
-		if moveRequest.Initial != nil && moveRequest.Final != nil {
-			chess.move(moveRequest, isWhite, key, &stream)
-		}
-	}
-}
-
-func (chess *Chess) get(moveRequest *pb.MoveRequest) (string, bool, error) {
-	jwtClaim, err := chess.JwtRedeemer.Redeem(moveRequest.Jwt.GetJwt())
-	if err != nil {
-		return "", false, err // Player is not logged in
-	}
-
-	gameKey, err := chess.SvcRecordCache.Find(schema.SVCRecord{Player: jwtClaim.Id})
-	if err != nil {
-		return "", false, err // Player is not in game
-	}
-	key := gameKey.Game
-
-	cachedGame, err := chess.GameCache.Find(schema.CachedGame{White: key})
-
-	return key, cachedGame.White == gameKey.Player, err
-}
-
-func (chess *Chess) move(moveRequest *pb.MoveRequest, isWhite bool, key string, stream *pb.ChessService_MoveServer) {
-	initial := position.Position{X: int(moveRequest.Initial.GetX()), Y: int(moveRequest.Initial.GetY())}
-	final := position.Position{X: int(moveRequest.Final.GetX()), Y: int(moveRequest.Final.GetY())}
-
-	cachedGame, err := chess.GameCache.Find(schema.CachedGame{White: key})
-
-	var whitesTurn bool = cachedGame.Turn
-	isTurn := whitesTurn && isWhite || !whitesTurn && !isWhite
-
-	gameInstance := game.LoadGame(&cachedGame)
-	if !isTurn {
-		err = errors.New("invalid turn sequence")
-	} else {
-		err = gameInstance.Move(initial, final, isWhite)
-	}
-
-	if err == nil { // Valid move
-		// Push to redis
-		err = chess.GameCache.Create(gameInstance.ExportUpdate(cachedGame))
-
-		if err == nil { // Publish move to pub-sub
-			err = chess.GameCache.Publish(key, "")
-			if err == nil {
-				return // Successful move
-			}
-			// Revert changes to keep server in get with clients
-			_ = chess.GameCache.Create(cachedGame)
-		}
-	}
-
-	// Invalid move, notify err
-	_ = (*stream).Send(&pb.MoveResponse{
-		Turn:  isTurn,
-		State: gameInstance,
+	err = steambot.PendingOffers.Create(schema.PendingOffer{
+		Id:        offer.ID,
+		ReturnUrl: createRequest.Response,
 	})
+	if err != nil {
+		// Cancel trade
+		_ = steambot.SteamClient.CancelTradeOffer(offer.ID)
+		return &pb.CreateResponse{Status: false}, err
+	}
+
+	return &pb.CreateResponse{Status: true, Confirmation: confirmationCode}, nil
+}
+
+func HandleIncomingTrades(pendingOffers *datastore.MongoClient[schema.PendingOffer], steamClient *steam.Session) {
+	resp, err := steamClient.GetTradeOffers(
+		steam.TradeFilterRecvOffers,
+		time.Now(),
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, offer := range resp.ReceivedOffers {
+		fmt.Println(offer)
+		// If exists accept, otherwise decline
+		_, err := pendingOffers.Find(schema.PendingOffer{Id: offer.ID})
+		if err == nil {
+			err := steamClient.AcceptTradeOffer(offer.ID)
+			if err == nil {
+				_ = pendingOffers.Delete(schema.PendingOffer{Id: offer.ID})
+			}
+		} else {
+			_ = steamClient.DeclineTradeOffer(offer.ID)
+		}
+	}
+
+	time.Sleep(time.Second * HandleOffersIntervalSeconds)
+	HandleIncomingTrades(pendingOffers, steamClient)
 }

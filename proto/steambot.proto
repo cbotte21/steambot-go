@@ -1,0 +1,28 @@
+syntax = "proto3";
+option go_package = "github.com/cbotte21/steambot-internal-go/pb";
+
+service SteamBotService {
+  rpc Create(CreateRequest) returns (CreateResponse) {}
+}
+
+message Item {
+  string AssetID = 1;
+  int64 InstanceID = 2;
+  int64 ClassID = 3;
+  int32 AppID = 4;
+  int64 ContextID = 5;
+  uint32 Amount = 6;
+  int32 Missing = 7;
+}
+
+message CreateRequest {
+  repeated Item playerItems = 1;
+  repeated Item botItems = 2;
+  int64 recipient = 3;
+  string response = 4; // Link to endpoint of called when trade accepted.
+}
+
+message CreateResponse {
+  bool status = 1;
+  string confirmation = 2;
+}

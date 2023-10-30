@@ -1,22 +1,25 @@
 package main
 
 import (
-	"github.com/cbotte21/chess-go/internal"
-	"github.com/cbotte21/chess-go/pb"
-	"github.com/cbotte21/chess-go/schema"
 	"github.com/cbotte21/microservice-common/pkg/datastore"
 	"github.com/cbotte21/microservice-common/pkg/environment"
-	"github.com/cbotte21/microservice-common/pkg/jwtParser"
+	"github.com/cbotte21/steambot-internal-go/internal"
+	"github.com/cbotte21/steambot-internal-go/pb"
+	"github.com/cbotte21/steambot-internal-go/schema"
+	"github.com/doctype/steam"
 	"google.golang.org/grpc"
 	"log"
 	"net"
+	"net/http"
+	"time"
 )
 
 func main() {
 	// Verify environment variables exist
 	environment.VerifyEnvVariable("port")
-	environment.VerifyEnvVariable("queue_addr")
-	environment.VerifyEnvVariable("jwt_secret")
+	environment.VerifyEnvVariable("username")
+	environment.VerifyEnvVariable("password")
+	environment.VerifyEnvVariable("sharedSecret")
 
 	port := environment.GetEnvVariable("port")
 
@@ -27,30 +30,37 @@ func main() {
 	}
 	grpcServer := grpc.NewServer()
 
-	// Register handlers to attach
-
-	jwtRedeemer := jwtParser.JwtSecret(environment.GetEnvVariable("jwt_secret"))
-
-	//gameArchive := datastore.RedisClient[schema.RecordGame]{}
-	gameCache := datastore.RedisClient[schema.CachedGame]{}
-	svcRecordCache := datastore.RedisClient[schema.SVCRecord]{}
-	//gameArchive.Init()
-	gameCache.Init()
-	svcRecordCache.Init()
+	pendingOffers := datastore.MongoClient[schema.PendingOffer]{}
+	err = pendingOffers.Init()
+	if err != nil {
+		log.Fatalf("mongodb client initialization failed")
+	}
 
 	// Initialize hive
-	chess := internal.NewChess(&jwtRedeemer, &gameCache, &svcRecordCache) //TODO: Add archive
-	pb.RegisterChessServiceServer(grpcServer, &chess)
+	steambot := internal.NewSteamBot(&pendingOffers, getSteamClient())
+	pb.RegisterSteamBotServiceServer(grpcServer, &steambot)
 	if err := grpcServer.Serve(lis); err != nil {
 		log.Fatalf(err.Error())
 	}
 }
 
-func getQueueConn() *grpc.ClientConn {
-	var conn *grpc.ClientConn
-	conn, err := grpc.Dial(environment.GetEnvVariable("queue_addr"), grpc.WithInsecure())
+func getSteamClient() *steam.Session {
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+
+	timeTip, err := steam.GetTimeTip()
 	if err != nil {
-		log.Fatalf(err.Error())
+		log.Fatal(err)
 	}
-	return conn
+
+	timeDiff := time.Duration(timeTip.Time - time.Now().Unix())
+	session := steam.NewSession(&http.Client{}, "")
+	if err := session.Login(
+		environment.GetEnvVariable("username"),
+		environment.GetEnvVariable("password"),
+		environment.GetEnvVariable("sharedSecret"),
+		timeDiff,
+	); err != nil {
+		log.Fatal(err)
+	}
+	return session
 }
