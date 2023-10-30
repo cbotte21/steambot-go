@@ -19,7 +19,6 @@ message CreateRequest {
   repeated Item playerItems = 1;
   repeated Item botItems = 2;
   int64 recipient = 3;
-  string response = 4; // Link to endpoint of called when trade accepted.
 }
 
 message CreateResponse {
